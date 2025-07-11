@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ábaco Digital com Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f8ff; margin: 0; padding: 0; color: #003366; }
+    header { background: #003366; color: white; padding: 20px; text-align: center; }
+    .abaco-container { padding: 20px; text-align: center; }
+    .abaco { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; margin-top: 20px; }
+    .haste { display: flex; flex-direction: column-reverse; align-items: center; width: 60px; height: 300px; background: #cce0ff; border-radius: 10px; padding: 10px 0; }
+    .conta { width: 30px; height: 30px; background: #0055aa; border-radius: 50%; margin: 5px 0; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, background 0.2s; }
+    .conta.ativa { box-shadow: 0 0 10px white; transform: scale(1.2); background: white; }
+    .valor { font-weight: bold; margin-top: 10px; font-size: 18px; }
+    .label { margin-top: 10px; font-size: 16px; }
+    .calc-section, .chat-section { text-align: center; margin-top: 40px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+    #inputNumero, #respostaAluno { padding: 10px; font-size: 16px; width: 220px; }
+    button { padding: 10px 20px; font-size: 16px; background: #0055aa; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    aside { margin-top: 40px; padding: 20px; background: #e6f0ff; border-left: 4px solid #0055aa; }
+    #chatLog { max-height: 150px; overflow-y: auto; background: #fff; width: 80%; border: 1px solid #ccc; padding: 10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Ábaco Digital com Chat</h1>
+    <p>Desenvolvido por: Andreza Viana</p>
+  </header>
+  <main class="abaco-container">
+    <h2>Interativo e Inteligente</h2>
+    <div class="abaco">
+      <div class="haste" id="centenas"><div class="valor" id="valCentenas">0</div><div class="label">Centenas</div></div>
+      <div class="haste" id="dezenas"><div class="valor" id="valDezenas">0</div><div class="label">Dezenas</div></div>
+      <div class="haste" id="unidades"><div class="valor" id="valUnidades">0</div><div class="label">Unidades</div></div>
+    </div>
+    <div class="calc-section">
+      <h3>Digite uma expressão (ex: 12+3, 5×5, 10÷2)</h3>
+      <input type="text" id="inputNumero" placeholder="Ex: 10÷2 ou 3×4" />
+      <button id="btnCalcular">Calcular</button>
+    </div>
+    <div class="chat-section">
+      <h3>Envie sua resposta:</h3>
+      <input type="text" id="respostaAluno" placeholder="Digite aqui..." />
+      <button id="btnEnviarResposta">Enviar</button>
+      <div id="chatLog"></div>
+    </div>
+    <aside>
+      <h2>Instruções</h2>
+      <p>Clique nas bolinhas. Quando completar 10, o sistema troca automaticamente para a próxima casa decimal.</p>
+      <p>Digite expressões como "3×4", "12+6", "20÷5" ou "3*4". Aperte Enter ou clique em "Calcular".</p>
+      <p>Use "x", "×" ou "*" para multiplicar e "÷" ou "/" para dividir.</p>
+    </aside>
+  </main>
+  <script>
+    function criarContas(hasteId, valorId, proximaColuna = null, proximoValorId = null) {
+      const haste = document.getElementById(hasteId);
+      const valorEl = document.getElementById(valorId);
+      let valor = 0;
+      const contas = [];
+      for (let i = 0; i < 10; i++) {
+        const conta = document.createElement("div");
+        conta.classList.add("conta");
+        haste.insertBefore(conta, haste.firstChild);
+        contas.unshift(conta);
+        conta.addEventListener("click", () => {
+          conta.classList.toggle("ativa");
+          valor = contas.filter(c => c.classList.contains("ativa")).length;
+          valorEl.textContent = valor;
+          if (valor === 10 && proximaColuna) {
+            contas.forEach(c => c.classList.remove("ativa"));
+            valorEl.textContent = "0";
+            const proxBola = proximaColuna.find(c => !c.classList.contains("ativa"));
+            if (proxBola) proxBola.classList.add("ativa");
+            document.getElementById(proximoValorId).textContent =
+              proximaColuna.filter(c => c.classList.contains("ativa")).length;
+          }
+          document.getElementById("inputNumero").value =
+            parseInt(document.getElementById("valCentenas").textContent) * 100 +
+            parseInt(document.getElementById("valDezenas").textContent) * 10 +
+            parseInt(document.getElementById("valUnidades").textContent);
+        });
+      }
+      return contas;
+    }
+    const contasCentenas = criarContas("centenas", "valCentenas");
+    const contasDezenas = criarContas("dezenas", "valDezenas", contasCentenas, "valCentenas");
+    const contasUnidades = criarContas("unidades", "valUnidades", contasDezenas, "valDezenas");
+    function safeEval(expr) {
+      try {
+        expr = expr.replace(/x/g, '*').replace(/×/g, '*').replace(/÷/g, '/');
+        if (/^[0-9+\-*/ ().]+$/.test(expr)) {
+          return Function('"use strict";return (' + expr + ')')();
+        }
+      } catch {}
+      return NaN;
+    }
+    function preencherAbaco() {
+      const expr = document.getElementById("inputNumero").value;
+      let num = safeEval(expr);
+      if (isNaN(num) || num < 0 || num > 999) return alert("Expressão inválida ou fora do intervalo (0 a 999)");
+      document.getElementById("inputNumero").value = num;
+      const c = Math.floor(num / 100);
+      const d = Math.floor((num % 100) / 10);
+      const u = num % 10;
+      preencherColuna(contasCentenas, c, "valCentenas");
+      preencherColuna(contasDezenas, d, "valDezenas");
+      preencherColuna(contasUnidades, u, "valUnidades");
+    }
+    function preencherColuna(contas, quantidade, valorId) {
+      contas.forEach((conta, i) => {
+        if (i >= 10 - quantidade) conta.classList.add("ativa");
+        else conta.classList.remove("ativa");
+      });
+      document.getElementById(valorId).textContent = quantidade;
+    }
+    document.getElementById("btnCalcular").addEventListener("click", preencherAbaco);
+    document.getElementById("inputNumero").addEventListener("keydown", e => { if (e.key === "Enter") preencherAbaco(); });
+    document.getElementById("btnEnviarResposta").addEventListener("click", function() {
+      const resposta = document.getElementById("respostaAluno").value.trim();
+      if (resposta) {
+        const log = document.getElementById("chatLog");
+        log.innerHTML += "<p>Aluno: " + resposta + "</p>";
+        document.getElementById("respostaAluno").value = "";
+      }
+    });
+  </script>
+</body>
+</html>

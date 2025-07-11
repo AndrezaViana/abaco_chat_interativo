@@ -33,17 +33,25 @@
       <div class="haste" id="dezenas"><div class="valor" id="valDezenas">0</div><div class="label">Dezenas</div></div>
       <div class="haste" id="unidades"><div class="valor" id="valUnidades">0</div><div class="label">Unidades</div></div>
     </div>
+
     <div class="calc-section">
       <h3>Digite uma expressão (ex: 12+3, 5×5, 10÷2)</h3>
       <input type="text" id="inputNumero" placeholder="Ex: 10÷2 ou 3×4" />
       <button id="btnCalcular">Calcular</button>
+
+      <h3>Controles Extras</h3>
+      <button id="btnZerar">Zerar</button>
+      <button id="btnMais1">+1</button>
+      <button id="btnMenos1">-1</button>
     </div>
+
     <div class="chat-section">
       <h3>Envie sua resposta:</h3>
       <input type="text" id="respostaAluno" placeholder="Digite aqui..." />
       <button id="btnEnviarResposta">Enviar</button>
       <div id="chatLog"></div>
     </div>
+
     <aside>
       <h2>Instruções</h2>
       <p>Clique nas bolinhas. Quando completar 10, o sistema troca automaticamente para a próxima casa decimal.</p>
@@ -51,6 +59,7 @@
       <p>Use "x", "×" ou "*" para multiplicar e "÷" ou "/" para dividir.</p>
     </aside>
   </main>
+
   <script>
     function criarContas(hasteId, valorId, proximaColuna = null, proximoValorId = null) {
       const haste = document.getElementById(hasteId);
@@ -82,9 +91,11 @@
       }
       return contas;
     }
+
     const contasCentenas = criarContas("centenas", "valCentenas");
     const contasDezenas = criarContas("dezenas", "valDezenas", contasCentenas, "valCentenas");
     const contasUnidades = criarContas("unidades", "valUnidades", contasDezenas, "valDezenas");
+
     function safeEval(expr) {
       try {
         expr = expr.replace(/x/g, '*').replace(/×/g, '*').replace(/÷/g, '/');
@@ -94,6 +105,7 @@
       } catch {}
       return NaN;
     }
+
     function preencherAbaco() {
       const expr = document.getElementById("inputNumero").value;
       let num = safeEval(expr);
@@ -106,6 +118,7 @@
       preencherColuna(contasDezenas, d, "valDezenas");
       preencherColuna(contasUnidades, u, "valUnidades");
     }
+
     function preencherColuna(contas, quantidade, valorId) {
       contas.forEach((conta, i) => {
         if (i >= 10 - quantidade) conta.classList.add("ativa");
@@ -113,8 +126,21 @@
       });
       document.getElementById(valorId).textContent = quantidade;
     }
+
+    function atualizarAbacoComValor(num) {
+      if (isNaN(num) || num < 0 || num > 999) return;
+      document.getElementById("inputNumero").value = num;
+      const c = Math.floor(num / 100);
+      const d = Math.floor((num % 100) / 10);
+      const u = num % 10;
+      preencherColuna(contasCentenas, c, "valCentenas");
+      preencherColuna(contasDezenas, d, "valDezenas");
+      preencherColuna(contasUnidades, u, "valUnidades");
+    }
+
     document.getElementById("btnCalcular").addEventListener("click", preencherAbaco);
     document.getElementById("inputNumero").addEventListener("keydown", e => { if (e.key === "Enter") preencherAbaco(); });
+
     document.getElementById("btnEnviarResposta").addEventListener("click", function() {
       const resposta = document.getElementById("respostaAluno").value.trim();
       if (resposta) {
@@ -122,6 +148,20 @@
         log.innerHTML += "<p>Aluno: " + resposta + "</p>";
         document.getElementById("respostaAluno").value = "";
       }
+    });
+
+    document.getElementById("btnZerar").addEventListener("click", () => {
+      atualizarAbacoComValor(0);
+    });
+
+    document.getElementById("btnMais1").addEventListener("click", () => {
+      let atual = parseInt(document.getElementById("inputNumero").value) || 0;
+      if (atual < 999) atualizarAbacoComValor(atual + 1);
+    });
+
+    document.getElementById("btnMenos1").addEventListener("click", () => {
+      let atual = parseInt(document.getElementById("inputNumero").value) || 0;
+      if (atual > 0) atualizarAbacoComValor(atual - 1);
     });
   </script>
 </body>
